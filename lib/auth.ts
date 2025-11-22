@@ -45,3 +45,16 @@ export function getUserIdFromRequest(request: NextRequest): string | null {
   const payload = verifyToken(token);
   return payload?.userId || null;
 }
+
+/**
+ * Get user info from database including role
+ * Use this when you need to check user role for authorization
+ */
+export async function getUserFromRequest(request: NextRequest) {
+  const userId = getUserIdFromRequest(request);
+  if (!userId) return null;
+  
+  const { dbGet } = await import('./supabase');
+  const user = await dbGet('users', { id: userId }) as any;
+  return user;
+}

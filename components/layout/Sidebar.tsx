@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { canAccessRoute, getRoleDisplayName } from '@/lib/roles';
 import {
   LayoutDashboard,
   Package,
@@ -34,6 +35,12 @@ export function Sidebar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter((item) => {
+    if (!user?.role) return false;
+    return canAccessRoute(user.role, item.href);
+  });
+
   const handleLogout = () => {
     logout();
     window.location.href = '/login';
@@ -46,7 +53,7 @@ export function Sidebar() {
           <h1 className="text-2xl font-bold text-primary-600">StockMaster</h1>
         </div>
         <nav className="mt-5 flex-1 px-2 space-y-1">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             return (
               <Link
@@ -77,6 +84,11 @@ export function Sidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              {user?.role && (
+                <p className="text-xs text-primary-600 font-medium truncate mt-0.5">
+                  {getRoleDisplayName(user.role)}
+                </p>
+              )}
             </div>
           </div>
           <div className="mt-2 flex gap-2">

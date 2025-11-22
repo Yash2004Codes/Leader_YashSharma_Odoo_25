@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbGet, dbInsert, dbInsertMany, supabase } from '@/lib/supabase';
 import { generateId, generateAdjustmentNumber, updateStockLevel } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { requirePermission } from '@/lib/middleware';
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const permissionCheck = await requirePermission(request, 'canManageAdjustments');
+    if (permissionCheck instanceof NextResponse) return permissionCheck;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -55,10 +54,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const permissionCheck = await requirePermission(request, 'canManageAdjustments');
+    if (permissionCheck instanceof NextResponse) return permissionCheck;
+    const { user } = permissionCheck;
+    const userId = user.id;
 
     const { warehouse_id, reason, notes, items } = await request.json();
 

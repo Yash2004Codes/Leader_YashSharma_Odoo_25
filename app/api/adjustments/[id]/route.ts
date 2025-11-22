@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbGet, dbUpdate, dbInsertMany, supabase } from '@/lib/supabase';
 import { updateStockLevel } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { requirePermission } from '@/lib/middleware';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const permissionCheck = await requirePermission(request, 'canManageAdjustments');
+    if (permissionCheck instanceof NextResponse) return permissionCheck;
+    const { user } = permissionCheck;
+    const userId = user.id;
 
     const body = await request.json();
     const { reason, notes, items, status } = body;

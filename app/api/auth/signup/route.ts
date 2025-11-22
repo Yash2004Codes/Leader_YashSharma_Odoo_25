@@ -5,7 +5,7 @@ import { hashPassword, generateToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json();
+    const { email, password, name, role } = await request.json();
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -13,6 +13,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate role
+    const validRoles = ['inventory_manager', 'warehouse_staff'];
+    const userRole = role && validRoles.includes(role) ? role : 'warehouse_staff';
 
     if (password.length < 6) {
       return NextResponse.json(
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
       email,
       password_hash: passwordHash,
       name,
-      role: 'warehouse_staff'
+      role: userRole
     });
 
     // Generate token

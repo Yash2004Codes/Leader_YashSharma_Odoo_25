@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { apiPost } from '@/lib/api';
+import { ROLES, getRoleDisplayName } from '@/lib/roles';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function SignupPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    role: ROLES.WAREHOUSE_STAFF,
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +44,7 @@ export default function SignupPage() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        role: formData.role,
       });
 
       setAuth(response.user, response.token);
@@ -81,6 +85,16 @@ export default function SignupPage() {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter your email"
+            />
+            <Select
+              label="Role"
+              required
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              options={[
+                { value: ROLES.WAREHOUSE_STAFF, label: getRoleDisplayName(ROLES.WAREHOUSE_STAFF) },
+                { value: ROLES.INVENTORY_MANAGER, label: getRoleDisplayName(ROLES.INVENTORY_MANAGER) },
+              ]}
             />
             <Input
               label="Password"

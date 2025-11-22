@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbGet, dbUpdate, dbDelete, dbInsertMany, supabase } from '@/lib/supabase';
 import { generateId, updateStockLevel } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { requirePermission } from '@/lib/middleware';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const permissionCheck = await requirePermission(request, 'canManageReceipts');
+    if (permissionCheck instanceof NextResponse) return permissionCheck;
 
     const { data: receipt, error } = await supabase
       .from('receipts')
@@ -52,10 +51,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const permissionCheck = await requirePermission(request, 'canManageReceipts');
+    if (permissionCheck instanceof NextResponse) return permissionCheck;
+    const { user } = permissionCheck;
+    const userId = user.id;
 
     const body = await request.json();
     const { supplier_name, warehouse_id, notes, items, status } = body;

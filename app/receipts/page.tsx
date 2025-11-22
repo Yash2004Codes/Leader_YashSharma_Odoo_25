@@ -11,7 +11,8 @@ import { AlertModal } from '@/components/ui/Modal';
 import { useAlert } from '@/lib/hooks/useAlert';
 import { useToast } from '@/lib/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Printer } from 'lucide-react';
+import { generateReceiptPDF } from '@/lib/pdf';
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<any[]>([]);
@@ -75,6 +76,37 @@ export default function ReceiptsPage() {
       toast.success('Receipt validated successfully!');
     } catch (error: any) {
       alert.error(error.message || 'Failed to validate receipt');
+    }
+  };
+
+  const handlePrintPDF = async (receiptId: string) => {
+    try {
+      const receipt = await apiGet<any>(`/api/receipts/${receiptId}`);
+      
+      // Format receipt data for PDF
+      const receiptData = {
+        receipt_number: receipt.receipt_number,
+        supplier_name: receipt.supplier_name,
+        warehouse_name: receipt.warehouse_name,
+        created_at: receipt.created_at,
+        validated_at: receipt.validated_at,
+        status: receipt.status,
+        notes: receipt.notes,
+        created_by_name: receipt.created_by_name,
+        items: (receipt.items || []).map((item: any) => ({
+          product_name: item.products?.name || item.product_name,
+          sku: item.products?.sku || item.sku,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          unit_of_measure: item.products?.unit_of_measure || item.unit_of_measure,
+          notes: item.notes,
+        })),
+      };
+
+      generateReceiptPDF(receiptData);
+      toast.success('PDF generated successfully!');
+    } catch (error: any) {
+      alert.error(error.message || 'Failed to generate PDF');
     }
   };
 
@@ -142,15 +174,25 @@ export default function ReceiptsPage() {
                         {new Date(receipt.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {receipt.status !== 'done' && (
+                        <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => handleValidate(receipt.id)}
+                            variant="outline"
+                            onClick={() => handlePrintPDF(receipt.id)}
                           >
-                            <Check className="h-4 w-4 mr-1" />
-                            Validate
+                            <Printer className="h-4 w-4 mr-1" />
+                            Print PDF
                           </Button>
-                        )}
+                          {receipt.status !== 'done' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleValidate(receipt.id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Validate
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
