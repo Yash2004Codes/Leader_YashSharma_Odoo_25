@@ -6,6 +6,10 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { AlertModal } from '@/components/ui/Modal';
+import { useAlert } from '@/lib/hooks/useAlert';
+import { useToast } from '@/lib/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 import { Plus } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -16,6 +20,8 @@ export default function SettingsPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [warehouseForm, setWarehouseForm] = useState({ name: '', code: '', address: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+  const alert = useAlert();
+  const toast = useToast();
 
   useEffect(() => {
     loadData();
@@ -43,9 +49,10 @@ export default function SettingsPage() {
       await apiPost('/api/warehouses', warehouseForm);
       setShowWarehouseModal(false);
       setWarehouseForm({ name: '', code: '', address: '' });
-      loadData();
+      await loadData();
+      toast.success('Warehouse created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to create warehouse');
+      alert.error(error.message || 'Failed to create warehouse');
     }
   };
 
@@ -55,14 +62,24 @@ export default function SettingsPage() {
       await apiPost('/api/products/categories', categoryForm);
       setShowCategoryModal(false);
       setCategoryForm({ name: '', description: '' });
-      loadData();
+      await loadData();
+      toast.success('Category created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to create category');
+      alert.error(error.message || 'Failed to create category');
     }
   };
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
+      <AlertModal
+        isOpen={alert.alert.isOpen}
+        onClose={alert.closeAlert}
+        title={alert.alert.title || 'Alert'}
+        message={alert.alert.message}
+        type={alert.alert.type}
+        onConfirm={alert.alert.onConfirm}
+      />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>

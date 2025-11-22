@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { AlertModal } from '@/components/ui/Modal';
+import { useAlert } from '@/lib/hooks/useAlert';
+import { useToast } from '@/lib/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 import { Plus, Check } from 'lucide-react';
 
 export default function DeliveriesPage() {
@@ -15,6 +19,8 @@ export default function DeliveriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const alert = useAlert();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     customer_name: '',
     warehouse_id: '',
@@ -55,18 +61,20 @@ export default function DeliveriesPage() {
         notes: '',
         items: [{ product_id: '', quantity: 0 }],
       });
-      loadData();
+      await loadData();
+      toast.success('Delivery order created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to create delivery order');
+      alert.error(error.message || 'Failed to create delivery order');
     }
   };
 
   const handleValidate = async (id: string) => {
     try {
       await apiPut(`/api/deliveries/${id}`, { status: 'done' });
-      loadData();
+      await loadData();
+      toast.success('Delivery order validated successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to validate delivery order');
+      alert.error(error.message || 'Failed to validate delivery order');
     }
   };
 
@@ -79,6 +87,15 @@ export default function DeliveriesPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
+      <AlertModal
+        isOpen={alert.alert.isOpen}
+        onClose={alert.closeAlert}
+        title={alert.alert.title || 'Alert'}
+        message={alert.alert.message}
+        type={alert.alert.type}
+        onConfirm={alert.alert.onConfirm}
+      />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Delivery Orders (Outgoing Stock)</h1>
