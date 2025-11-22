@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbGet, dbUpdate, dbInsertMany, supabase } from '@/lib/supabase';
-import { updateStockLevel } from '@/lib/utils';
+import { updateStockLevel, validateStockAvailability } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export async function PUT(
@@ -41,6 +41,18 @@ export async function PUT(
     }
 
     if (items && Array.isArray(items)) {
+      // Determine which warehouse to check (use updated from_warehouse_id if changed, otherwise original)
+      const checkWarehouseId = from_warehouse_id !== undefined ? from_warehouse_id : transfer.from_warehouse_id;
+
+      // Validate stock availability in source warehouse before making changes
+      try {
+        await validateStockAvailability(items, checkWarehouseId);
+      } catch (error: any) {
+        return NextResponse.json({ 
+          error: `Insufficient stock in source warehouse:\n${error.message}` 
+        }, { status: 400 });
+      }
+
       await supabase.from('transfer_items').delete().eq('transfer_id', params.id);
 
       const transferItems = items.map((item: any) => ({
@@ -60,12 +72,32 @@ export async function PUT(
         .select('*')
         .eq('transfer_id', params.id);
       
-      if (transferItems) {
+      if (transferItems && transferItems.length > 0) {
+        // Final stock availability check before validating (in case stock changed)
+        // Use updated warehouse IDs if changed, otherwise original
+        const sourceWarehouseId = from_warehouse_id !== undefined ? from_warehouse_id : transfer.from_warehouse_id;
+        
+        try {
+          const itemsToCheck = transferItems.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity
+          }));
+          await validateStockAvailability(itemsToCheck, sourceWarehouseId);
+        } catch (error: any) {
+          return NextResponse.json({ 
+            error: `Cannot validate transfer - insufficient stock in source warehouse:\n${error.message}` 
+          }, { status: 400 });
+        }
+
         for (const item of transferItems) {
+          // Use updated warehouse IDs if changed, otherwise original
+          const finalSourceWarehouseId = from_warehouse_id !== undefined ? from_warehouse_id : transfer.from_warehouse_id;
+          const finalDestWarehouseId = to_warehouse_id !== undefined ? to_warehouse_id : transfer.to_warehouse_id;
+
           // Decrease from source warehouse
           await updateStockLevel(
             item.product_id,
-            transfer.from_warehouse_id,
+            finalSourceWarehouseId,
             -item.quantity,
             'transfer_out',
             params.id,
@@ -77,7 +109,7 @@ export async function PUT(
           // Increase in destination warehouse
           await updateStockLevel(
             item.product_id,
-            transfer.to_warehouse_id,
+            finalDestWarehouseId,
             item.quantity,
             'transfer_in',
             params.id,

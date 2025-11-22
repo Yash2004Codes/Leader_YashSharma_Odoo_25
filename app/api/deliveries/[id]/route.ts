@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbGet, dbUpdate, dbInsertMany, supabase } from '@/lib/supabase';
-import { updateStockLevel } from '@/lib/utils';
+import { dbGet, dbUpdate, dbInsert, dbInsertMany, supabase } from '@/lib/supabase';
+import { updateStockLevel, validateStockAvailability } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export async function PUT(
@@ -41,6 +41,18 @@ export async function PUT(
     }
 
     if (items && Array.isArray(items)) {
+      // Determine which warehouse to check (use updated warehouse_id if changed, otherwise original)
+      const checkWarehouseId = warehouse_id !== undefined ? warehouse_id : order.warehouse_id;
+
+      // Validate stock availability before making changes
+      try {
+        await validateStockAvailability(items, checkWarehouseId);
+      } catch (error: any) {
+        return NextResponse.json({ 
+          error: error.message || 'Insufficient stock available' 
+        }, { status: 400 });
+      }
+
       // Unreserve old items
       const { data: oldItems } = await supabase
         .from('delivery_order_items')
@@ -73,15 +85,23 @@ export async function PUT(
 
       await dbInsertMany('delivery_order_items', orderItems);
 
-      // Reserve stock for new items
+      // Reserve stock for new items (use the warehouse we validated against)
       for (const item of items) {
-        const stock = await dbGet('stock_levels', { product_id: item.product_id, warehouse_id: order.warehouse_id }) as any;
+        const stock = await dbGet('stock_levels', { product_id: item.product_id, warehouse_id: checkWarehouseId }) as any;
         if (stock && stock.id) {
           await dbUpdate(
             'stock_levels',
             { id: stock.id },
             { reserved_quantity: (stock.reserved_quantity || 0) + item.quantity }
           );
+        } else {
+          // Create stock level entry if it doesn't exist (shouldn't happen after validation, but safety check)
+          await dbInsert('stock_levels', {
+            product_id: item.product_id,
+            warehouse_id: checkWarehouseId,
+            quantity: 0,
+            reserved_quantity: item.quantity
+          });
         }
       }
     }
@@ -93,7 +113,20 @@ export async function PUT(
         .select('*')
         .eq('delivery_order_id', params.id);
       
-      if (orderItems) {
+      if (orderItems && orderItems.length > 0) {
+        // Final stock availability check before validating (in case stock changed)
+        try {
+          const itemsToCheck = orderItems.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity
+          }));
+          await validateStockAvailability(itemsToCheck, order.warehouse_id);
+        } catch (error: any) {
+          return NextResponse.json({ 
+            error: `Cannot validate delivery order - insufficient stock:\n${error.message}` 
+          }, { status: 400 });
+        }
+
         for (const item of orderItems) {
           // Unreserve first
           const stock = await dbGet('stock_levels', { product_id: item.product_id, warehouse_id: order.warehouse_id }) as any;
