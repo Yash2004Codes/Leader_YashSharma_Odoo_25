@@ -1,0 +1,15 @@
+# Copy this template to .env.local and fill in your values
+# Get your Supabase credentials from: Settings → API
+
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key-here
+JWT_SECRET=your-random-secret-key-minimum-32-characters-long
+JWT_EXPIRES_IN=7d
+OTP_EXPIRES_IN=600000
+
+# Optional: Email configuration for password reset
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASS=your-app-password
+# FROM_EMAIL=your-email@gmail.com
