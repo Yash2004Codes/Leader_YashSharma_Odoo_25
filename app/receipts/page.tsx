@@ -11,11 +11,13 @@ import { AlertModal } from '@/components/ui/Modal';
 import { useAlert } from '@/lib/hooks/useAlert';
 import { useToast } from '@/lib/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, FileText } from 'lucide-react';
+import { generateReceiptPDF } from '@/lib/pdf';
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -29,8 +31,14 @@ export default function ReceiptsPage() {
   });
 
   useEffect(() => {
-    loadData();
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      loadData();
+    }
+  }, [mounted]);
 
   const loadData = async () => {
     setLoading(true);
@@ -78,12 +86,57 @@ export default function ReceiptsPage() {
     }
   };
 
+  const handlePrintPDF = async (receiptId: string) => {
+    try {
+      // Fetch full receipt data with items
+      const receipt = await apiGet<any>(`/api/receipts/${receiptId}`);
+      
+      // Format receipt data for PDF
+      const receiptData = {
+        receipt_number: receipt.receipt_number,
+        supplier_name: receipt.supplier_name,
+        warehouse_name: receipt.warehouse_name,
+        created_at: receipt.created_at,
+        created_by_name: receipt.created_by_name,
+        notes: receipt.notes,
+        status: receipt.status,
+        items: (receipt.items || []).map((item: any) => ({
+          product_name: item.products?.name || 'N/A',
+          sku: item.products?.sku || 'N/A',
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          unit_of_measure: item.products?.unit_of_measure || '',
+          notes: item.notes,
+        })),
+      };
+
+      // Generate and download PDF
+      generateReceiptPDF(receiptData);
+      toast.success('PDF generated successfully!');
+    } catch (error: any) {
+      console.error('Print PDF error:', error);
+      toast.error(error.message || 'Failed to generate PDF');
+    }
+  };
+
   const addItem = () => {
     setFormData({
       ...formData,
       items: [...formData.items, { product_id: '', quantity: 0, unit_price: 0 }],
     });
   };
+
+  if (!mounted) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -142,15 +195,26 @@ export default function ReceiptsPage() {
                         {new Date(receipt.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {receipt.status !== 'done' && (
+                        <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            onClick={() => handleValidate(receipt.id)}
+                            variant="outline"
+                            onClick={() => handlePrintPDF(receipt.id)}
+                            title="Print PDF"
                           >
-                            <Check className="h-4 w-4 mr-1" />
-                            Validate
+                            <FileText className="h-4 w-4 mr-1" />
+                            Print
                           </Button>
-                        )}
+                          {receipt.status !== 'done' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleValidate(receipt.id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Validate
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
