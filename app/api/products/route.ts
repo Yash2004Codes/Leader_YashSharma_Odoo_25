@@ -30,7 +30,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+      // Enhanced search: prioritize SKU matches if search looks like a SKU
+      // If search is alphanumeric and short, prioritize SKU
+      if (/^[A-Z0-9-]+$/i.test(search) && search.length <= 20) {
+        // Prioritize SKU matches first
+        query = query.or(`sku.ilike.%${search}%,name.ilike.%${search}%`);
+      } else {
+        // Standard search for names
+        query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+      }
     }
 
     const { data: products, error } = await query;

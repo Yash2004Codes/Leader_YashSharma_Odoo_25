@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { ToastContainer } from '@/components/ui/Toast';
+import { SmartSearch } from '@/components/ui/SmartSearch';
 import { useToast } from '@/lib/hooks/useToast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { SearchResult } from '@/app/api/search/products/route';
 import { Plus, Search, Edit } from 'lucide-react';
 import Link from 'next/link';
 
@@ -170,15 +172,19 @@ export default function ProductsPage() {
         {/* Filters */}
         <Card>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SmartSearch
+              placeholder="Search by SKU or product name..."
+              warehouseId={warehouseFilter || undefined}
+              onSearch={(query) => {
+                setSearch(query);
+              }}
+              onSelect={(result) => {
+                setSearch(result.sku || result.name);
+                // Optionally filter to show only this product
+                // You could navigate or highlight the selected product
+              }}
+              className="w-full"
+            />
             <Select
               label="Warehouse"
               value={warehouseFilter}

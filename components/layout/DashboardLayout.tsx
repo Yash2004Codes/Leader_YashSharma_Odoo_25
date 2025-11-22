@@ -5,10 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { Sidebar } from './Sidebar';
 import { Chatbot } from '@/components/chatbot/Chatbot';
+import { useStockNotifications } from '@/lib/hooks/useStockNotifications';
+import { ToastContainer } from '@/components/ui/Toast';
+import { useToast } from '@/lib/hooks/useToast';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const toast = useToast();
+
+  // Enable stock notifications when user is authenticated
+  useStockNotifications({
+    enabled: isAuthenticated(),
+    checkInterval: 30000, // Check every 30 seconds
+    showToasts: true,
+    minSeverity: 'warning', // Show both warnings and errors
+  });
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -31,6 +43,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <Chatbot />
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
 }
