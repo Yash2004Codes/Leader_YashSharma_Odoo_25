@@ -39,7 +39,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200 w-64">
+    <div className="flex flex-col h-full bg-white border-r border-gray-200 w-64" data-tour="sidebar">
       <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
         <div className="flex items-center flex-shrink-0 px-4">
           <h1 className="text-2xl font-bold text-primary-600">StockMaster</h1>

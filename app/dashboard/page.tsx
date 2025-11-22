@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { Tour, useTour, type TourStep } from '@/components/ui/Tour';
 import { apiGet } from '@/lib/api';
 import { Package, AlertTriangle, Clock, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -30,6 +31,8 @@ export default function DashboardPage() {
     status: 'all',
   });
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const { shouldShowTour, markTourComplete } = useTour();
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     loadWarehouses();
@@ -39,6 +42,16 @@ export default function DashboardPage() {
     loadDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  useEffect(() => {
+    // Show tour after a short delay to ensure DOM is ready
+    if (shouldShowTour) {
+      const timer = setTimeout(() => {
+        setShowTour(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShowTour]);
 
   const loadWarehouses = async () => {
     try {
@@ -111,15 +124,66 @@ export default function DashboardPage() {
     },
   ];
 
+  const tourSteps: TourStep[] = [
+    {
+      id: 'sidebar',
+      target: 'sidebar',
+      title: 'Navigation Sidebar',
+      content: 'Use the sidebar to navigate between different sections: Products, Receipts, Deliveries, Transfers, Adjustments, and more. The active page is highlighted in blue.',
+      position: 'right',
+      placement: 'start',
+    },
+    {
+      id: 'dashboard-header',
+      target: 'dashboard-header',
+      title: 'Dashboard Overview',
+      content: 'Welcome to your dashboard! This is your central hub where you can see key metrics and recent activity at a glance.',
+      position: 'bottom',
+      placement: 'start',
+    },
+    {
+      id: 'filters',
+      target: 'filters',
+      title: 'Dynamic Filters',
+      content: 'Use these filters to customize your dashboard view. Filter by warehouse, document type, or status to focus on specific data.',
+      position: 'bottom',
+      placement: 'center',
+    },
+    {
+      id: 'kpi-cards',
+      target: 'kpi-cards',
+      title: 'Key Performance Indicators',
+      content: 'These cards show important metrics: total products, low stock alerts, pending receipts/deliveries, and scheduled transfers. Keep an eye on these to stay on top of your inventory.',
+      position: 'bottom',
+      placement: 'center',
+    },
+    {
+      id: 'transactions',
+      target: 'transactions',
+      title: 'Recent Transactions',
+      content: 'This table shows your most recent inventory operations. You can see receipts, deliveries, transfers, and adjustments with their current status.',
+      position: 'top',
+      placement: 'center',
+    },
+    {
+      id: 'chatbot',
+      target: 'chatbot',
+      title: 'AI Chatbot Assistant',
+      content: 'Meet your AI inventory assistant! Click this button anytime to get help with questions about your inventory, stock levels, products, or operations. Ask things like "What\'s the stock of [product]?" or "Show me low stock items".',
+      position: 'left',
+      placement: 'end',
+    },
+  ];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-tour="dashboard-header">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card data-tour="filters">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               label="Warehouse"
@@ -159,7 +223,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-tour="kpi-cards">
           {kpiCards.map((kpi) => {
             const Icon = kpi.icon;
             return (
@@ -179,7 +243,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions */}
-        <Card title="Recent Transactions">
+        <Card title="Recent Transactions" data-tour="transactions">
           {loading ? (
             <div className="text-center py-8">Loading...</div>
           ) : data?.recentTransactions && data.recentTransactions.length > 0 ? (
@@ -236,6 +300,14 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      {/* Guided Tour */}
+      <Tour
+        steps={tourSteps}
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+        onComplete={markTourComplete}
+      />
     </DashboardLayout>
   );
 }
