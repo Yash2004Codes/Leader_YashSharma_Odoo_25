@@ -107,6 +107,7 @@ export function Chatbot() {
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg z-50 transition-all duration-200 hover:scale-110"
           aria-label="Open chatbot"
+          data-tour="chatbot"
         >
           <MessageCircle className="h-6 w-6" />
         </button>
