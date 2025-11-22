@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbGet, dbInsert, dbInsertMany, dbUpdate, supabase } from '@/lib/supabase';
-import { generateId, generateDeliveryOrderNumber, updateStockLevel } from '@/lib/utils';
+import { generateId, generateDeliveryOrderNumber, updateStockLevel, validateStockAvailability } from '@/lib/utils';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -66,15 +66,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Warehouse and items are required' }, { status: 400 });
     }
 
-    // Check stock availability
-    for (const item of items) {
-      const stock = await dbGet('stock_levels', { product_id: item.product_id, warehouse_id }) as any;
-      const available = (stock?.quantity || 0) - (stock?.reserved_quantity || 0);
-      if (available < item.quantity) {
-        return NextResponse.json({ 
-          error: `Insufficient stock. Available: ${available}, Requested: ${item.quantity}` 
-        }, { status: 400 });
-      }
+    // Check stock availability with detailed validation
+    try {
+      await validateStockAvailability(items, warehouse_id);
+    } catch (error: any) {
+      return NextResponse.json({ 
+        error: error.message || 'Insufficient stock available' 
+      }, { status: 400 });
     }
 
     const orderId = generateId();
