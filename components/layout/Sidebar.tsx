@@ -26,6 +26,7 @@ const navigation = [
   { name: 'Adjustments', href: '/adjustments', icon: Settings },
   { name: 'Move History', href: '/history', icon: FileText },
   { name: 'Settings', href: '/settings', icon: Warehouse },
+  { name: 'Profile', href: '/profile', icon: User },
 ];
 
 export function Sidebar() {
