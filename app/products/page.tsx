@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { ToastContainer } from '@/components/ui/Toast';
+import { useToast } from '@/lib/hooks/useToast';
 import { apiGet, apiPost } from '@/lib/api';
 import { Plus, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -19,6 +21,7 @@ export default function ProductsPage() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -61,7 +64,15 @@ export default function ProductsPage() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiPost('/api/products', formData);
+      // Prepare data - convert empty category_id to null
+      const submitData = {
+        ...formData,
+        category_id: formData.category_id || null,
+        reorder_level: formData.reorder_level || 0,
+        reorder_quantity: formData.reorder_quantity || 0,
+      };
+      
+      await apiPost('/api/products', submitData);
       setShowModal(false);
       setFormData({
         name: '',
@@ -72,14 +83,17 @@ export default function ProductsPage() {
         reorder_level: 0,
         reorder_quantity: 0,
       });
-      loadData();
+      await loadData();
+      toast.success('Product created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to create product');
+      console.error('Create product error:', error);
+      toast.error(error.message || 'Failed to create product. Please check console for details.');
     }
   };
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Products</h1>
@@ -210,11 +224,33 @@ export default function ProductsPage() {
                   onChange={(e) => setFormData({ ...formData, unit_of_measure: e.target.value })}
                   placeholder="e.g., kg, pcs, units"
                 />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    placeholder="Product description (optional)"
+                  />
+                </div>
                 <Input
                   label="Reorder Level"
                   type="number"
+                  min="0"
                   value={formData.reorder_level}
                   onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
+                />
+                <Input
+                  label="Reorder Quantity"
+                  type="number"
+                  min="0"
+                  value={formData.reorder_quantity}
+                  onChange={(e) => setFormData({ ...formData, reorder_quantity: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
                 />
                 <div className="flex gap-2">
                   <Button

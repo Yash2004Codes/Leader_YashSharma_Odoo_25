@@ -15,13 +15,13 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('category_id');
     const search = searchParams.get('search');
 
-    // Build query with joins
+    // Build query with joins - use left join so products without stock still show
     let query = supabase
       .from('products')
       .select(`
         *,
         product_categories(name),
-        stock_levels!inner(warehouse_id, quantity, reserved_quantity, warehouses(name, code))
+        stock_levels(warehouse_id, quantity, reserved_quantity, warehouses(name, code))
       `)
       .eq('is_active', 1);
 
@@ -33,16 +33,24 @@ export async function GET(request: NextRequest) {
       query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
     }
 
-    if (warehouseId) {
-      query = query.eq('stock_levels.warehouse_id', warehouseId);
-    }
-
     const { data: products, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
+
+    // Filter by warehouse if specified (after fetching to handle products without stock)
+    let filteredProducts = products || [];
+    if (warehouseId) {
+      filteredProducts = filteredProducts.filter((p: any) => {
+        const stockLevels = p.stock_levels || [];
+        return stockLevels.some((sl: any) => sl.warehouse_id === warehouseId);
+      });
+    }
 
     // Process products to calculate totals and add stock info
-    const productsWithStock = (products || []).map((product: any) => {
+    const productsWithStock = filteredProducts.map((product: any) => {
       const stockLevels = product.stock_levels || [];
       const totalStock = stockLevels.reduce((sum: number, sl: any) => sum + (sl.quantity || 0), 0);
       const totalReserved = stockLevels.reduce((sum: number, sl: any) => sum + (sl.reserved_quantity || 0), 0);
