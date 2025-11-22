@@ -16,10 +16,10 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, duration);
+    }, toastDuration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [toastDuration, onClose]);
 
   const icons = {
     success: <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />,
@@ -44,14 +44,16 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border min-w-[300px] max-w-[500px] ${bgColors[type]} animate-in slide-in-from-top-5 fade-in-0`}
+      className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border min-w-[300px] max-w-[500px] ${bgColors[type]} animate-in slide-in-from-top-5 fade-in-0`}
       role="alert"
     >
-      {icons[type]}
-      <p className={`font-medium flex-1 ${textColors[type]}`}>{message}</p>
+      <div className="flex-shrink-0 mt-0.5">
+        {icons[type]}
+      </div>
+      <p className={`font-medium flex-1 ${textColors[type]} break-words`}>{message}</p>
       <button
         onClick={onClose}
-        className={`${textColors[type]} hover:opacity-70 transition-opacity flex-shrink-0`}
+        className={`${textColors[type]} hover:opacity-70 transition-opacity flex-shrink-0 mt-0.5`}
         aria-label="Close"
       >
         <X className="h-4 w-4" />
