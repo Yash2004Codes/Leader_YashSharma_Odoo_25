@@ -16,10 +16,10 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, toastDuration);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [toastDuration, onClose]);
+  }, [duration, onClose]);
 
   const icons = {
     success: <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />,
