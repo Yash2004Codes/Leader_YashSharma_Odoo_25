@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { AlertModal } from '@/components/ui/Modal';
+import { useAlert } from '@/lib/hooks/useAlert';
+import { useToast } from '@/lib/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 import { Plus, Check } from 'lucide-react';
 
 export default function AdjustmentsPage() {
@@ -15,6 +19,8 @@ export default function AdjustmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const alert = useAlert();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     warehouse_id: '',
     reason: '',
@@ -55,18 +61,20 @@ export default function AdjustmentsPage() {
         notes: '',
         items: [{ product_id: '', counted_quantity: 0 }],
       });
-      loadData();
+      await loadData();
+      toast.success('Stock adjustment created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to create adjustment');
+      alert.error(error.message || 'Failed to create adjustment');
     }
   };
 
   const handleValidate = async (id: string) => {
     try {
       await apiPut(`/api/adjustments/${id}`, { status: 'done' });
-      loadData();
+      await loadData();
+      toast.success('Stock adjustment validated successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to validate adjustment');
+      alert.error(error.message || 'Failed to validate adjustment');
     }
   };
 
@@ -79,6 +87,15 @@ export default function AdjustmentsPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
+      <AlertModal
+        isOpen={alert.alert.isOpen}
+        onClose={alert.closeAlert}
+        title={alert.alert.title || 'Alert'}
+        message={alert.alert.message}
+        type={alert.alert.type}
+        onConfirm={alert.alert.onConfirm}
+      />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Stock Adjustments</h1>
