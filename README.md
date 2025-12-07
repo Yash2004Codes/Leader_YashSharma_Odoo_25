@@ -2,6 +2,7 @@
 
 A complete, modular Inventory Management System (IMS) built with Next.js that digitizes and streamlines all stock-related operations within a business.
 
+Project Demo Video : https://drive.google.com/drive/folders/1K67b7ieY6FO4VZus5bifmIExVaNZuavV
 ## Features
 
 ### Authentication
